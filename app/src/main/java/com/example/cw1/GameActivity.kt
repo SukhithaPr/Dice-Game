@@ -65,7 +65,7 @@ fun GameScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(50.dp)
     ) {
         // Game header
             Row(
@@ -85,7 +85,7 @@ fun GameScreen() {
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.weight(1f))
 
         // Scores display
             Row(
@@ -102,7 +102,7 @@ fun GameScreen() {
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.weight(1f))
 
         // Computer Dice display
         Column {
