@@ -46,21 +46,21 @@ class GameActivity : ComponentActivity() {
 
 @Composable
 fun GameScreen() {
-    // Game state
-    var humanWins by rememberSaveable { mutableStateOf(0) }
-    var computerWins by rememberSaveable { mutableStateOf(0) }
-    var humanScore by rememberSaveable { mutableStateOf(0) }
-    var computerScore by rememberSaveable { mutableStateOf(0) }
-    var currentTurn by rememberSaveable { mutableStateOf(1) }
-    var targetScore by rememberSaveable { mutableStateOf(101) }
-    var humanDice by rememberSaveable { mutableStateOf(List(5) { 1 }) }
-    var computerDice by rememberSaveable { mutableStateOf(List(5) { 1 }) }
-    var selectedDice by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) }
-    var gameOver by rememberSaveable { mutableStateOf(false) }
-    var winner by rememberSaveable { mutableStateOf("") }
-    var showTargetDialog by remember { mutableStateOf(false) }
-    var tempTarget by remember { mutableStateOf(targetScore.toString()) }
-    val context = LocalContext.current
+    // Game state variables
+    var humanWins by rememberSaveable { mutableStateOf(0) } // Human win count
+    var computerWins by rememberSaveable { mutableStateOf(0) } // Computer win count
+    var humanScore by rememberSaveable { mutableStateOf(0) } // Human current score
+    var computerScore by rememberSaveable { mutableStateOf(0) } // Computer current score
+    var currentTurn by rememberSaveable { mutableStateOf(1) } // Current turn (1-3)
+    var targetScore by rememberSaveable { mutableStateOf(101) } // Target score to win
+    var humanDice by rememberSaveable { mutableStateOf(List(5) { 1 }) } // Human dice values
+    var computerDice by rememberSaveable { mutableStateOf(List(5) { 1 }) } // Computer dice values
+    var selectedDice by rememberSaveable { mutableStateOf<List<Int>>(emptyList()) } // Selected dice indices
+    var gameOver by rememberSaveable { mutableStateOf(false) } // Game over flag
+    var winner by rememberSaveable { mutableStateOf("") } // Winner ("human" or "computer")
+    var showTargetDialog by remember { mutableStateOf(false) } // Target score dialog visibility
+    var tempTarget by remember { mutableStateOf(targetScore.toString()) } // Temporary target score input
+    val context = LocalContext.current // Context for starting activities
 
     Column(
         modifier = Modifier
@@ -104,7 +104,7 @@ fun GameScreen() {
 
             Spacer(Modifier.height(24.dp))
 
-        // Dice display
+        // Computer Dice display
         Column {
             Text("Computer dice:", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
@@ -113,6 +113,7 @@ fun GameScreen() {
 
             Spacer(Modifier.height(24.dp))
 
+        // Human Dice display
         Column {
             Text("Your dice:", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
@@ -136,6 +137,8 @@ fun GameScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
+
+                // Roll Button
                 Button(
                     onClick = {
                         // Human roll
@@ -180,7 +183,7 @@ fun GameScreen() {
                     Text("Roll (${4 - currentTurn} left)")
                 }
 
-                // Show Score button only after first roll
+                // Score button (visible after first roll)
                 if (currentTurn > 1) {
                     Button(
                         onClick = {
@@ -276,6 +279,7 @@ fun GameScreen() {
     }
 }
 
+// Composable function to display a row of dice
 @Composable
 fun DiceRow(
     diceValues: List<Int>,
@@ -310,16 +314,16 @@ fun DiceRow(
  * The computer keeps dice based on how many points it needs to win (threshold = targetScore - currentScore):
  *
  * 1. CRITICAL PHASE (threshold ≤ 6):
- *    - Keeps any dice ≥ threshold
+ *    - Keeps any die that can win immediately
  *    - Example: If 3 points away, keeps dice showing 3, 4, 5, or 6
  *    - Win immediately with a single roll
  *
  * 2. AGGRESSIVE PHASE (7 ≤ threshold ≤ 15):
- *    - Keeps only high-value dice (≥5)
+ *    - Keeps only high-value dice (5-6)
  *    - Maximize points per turn while avoiding low rolls
  *
- * 3. CONSERVATIVE PHASE (threshold > 15):
- *    - Keeps decent dice (≥4)
+ * 3. EARLY GAME (>15 points needed):
+ *    - Keeps decent dice (4-6)
  *    - Steady point accumulation
  *
  * ======= JUSTIFICATION =======
@@ -346,17 +350,19 @@ fun DiceRow(
  * - Fixed thresholds may need tuning for different target scores
  */
 
+// Computer strategy to decide which dice to keep
 fun computerRollStrategy(currentDice: List<Int>, currentScore: Int, targetScore: Int): List<Boolean> {
     val threshold = targetScore - currentScore
     return currentDice.map { value ->
         when {
-            threshold <= 6 -> value >= threshold
-            threshold <= 15 -> value >= 5
-            else -> value >= 4
+            threshold <= 6 -> value >= threshold // Critical phase: keep dice that can win
+            threshold <= 15 -> value >= 5 // Aggressive phase: keep high dice (5-6)
+            else -> value >= 4 // Early game: keep decent dice (4-6)
         }
     }
 }
 
+// Function to score the current round and check for a winner
 fun scoreRound(
     humanDice: List<Int>,
     computerDice: List<Int>,
@@ -376,6 +382,7 @@ fun scoreRound(
     updateHumanScore(humanRoundScore)
     updateComputerScore(computerRoundScore)
 
+    // Check for winner
     if (humanTotal >= targetScore || computerTotal >= targetScore) {
         val winner = when {
             humanTotal > computerTotal -> "human"

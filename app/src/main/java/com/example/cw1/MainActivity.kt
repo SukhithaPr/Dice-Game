@@ -36,6 +36,7 @@ fun MainScreen() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // New Game Button
         Button(
             onClick = {
                 val intent = Intent(context, GameActivity::class.java)
@@ -48,6 +49,7 @@ fun MainScreen() {
 
         Spacer(Modifier.height(16.dp))
 
+        // About Button
         Button(
             onClick = { showAbout = true },
             modifier = Modifier.width(200.dp)
@@ -56,6 +58,7 @@ fun MainScreen() {
         }
     }
 
+    // About Dialog
     if (showAbout) {
         AlertDialog(
             onDismissRequest = { showAbout = false },
