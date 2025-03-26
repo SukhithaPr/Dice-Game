@@ -138,7 +138,7 @@ fun GameScreen() {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
 
-                // Roll Button
+                // Throw Button
                 Button(
                     onClick = {
                         // Human roll
@@ -180,7 +180,7 @@ fun GameScreen() {
                     enabled = currentTurn <= 3 && !gameOver,
                     modifier = Modifier.width(150.dp)
                 ) {
-                    Text("Roll (${4 - currentTurn} left)")
+                    Text("Throw (${4 - currentTurn} rolls left)")
                 }
 
                 // Score button (visible after first roll)
