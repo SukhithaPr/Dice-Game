@@ -61,7 +61,7 @@ fun MainScreen() {
             onDismissRequest = { showAbout = false },
             title = { Text("About") },
             text = {
-                Text("Student ID: YOUR_ID\nName: YOUR_NAME\n\n" +
+                Text("Student ID: 20230446\nName: Sukhitha Saparamadu\n\n" +
                         "I confirm that I understand what plagiarism is and have read and " +
                         "understood the section on Assessment Offences in the Essential " +
                         "Information for Students. The work that I have submitted is " +

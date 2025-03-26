@@ -1,5 +1,6 @@
 package com.example.cw1
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,6 +19,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import com.example.cw1.ui.theme.CW1Theme
 
 val diceImages = listOf(
@@ -44,11 +47,11 @@ class GameActivity : ComponentActivity() {
 @Composable
 fun GameScreen() {
     // Game state
-    var humanScore by rememberSaveable { mutableStateOf(0) }
-    var computerScore by rememberSaveable { mutableStateOf(0) }
     var humanWins by rememberSaveable { mutableStateOf(0) }
     var computerWins by rememberSaveable { mutableStateOf(0) }
-    var rollsLeft by rememberSaveable { mutableStateOf(3) }
+    var humanScore by rememberSaveable { mutableStateOf(0) }
+    var computerScore by rememberSaveable { mutableStateOf(0) }
+    var currentTurn by rememberSaveable { mutableStateOf(1) }
     var targetScore by rememberSaveable { mutableStateOf(101) }
     var humanDice by rememberSaveable { mutableStateOf(List(5) { 1 }) }
     var computerDice by rememberSaveable { mutableStateOf(List(5) { 1 }) }
@@ -57,6 +60,7 @@ fun GameScreen() {
     var winner by rememberSaveable { mutableStateOf("") }
     var showTargetDialog by remember { mutableStateOf(false) }
     var tempTarget by remember { mutableStateOf(targetScore.toString()) }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -64,47 +68,58 @@ fun GameScreen() {
             .padding(16.dp)
     ) {
         // Game header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("Wins: H:$humanWins/C:$computerWins", style = MaterialTheme.typography.titleSmall)
-            Text("Target: $targetScore", style = MaterialTheme.typography.titleSmall)
-            Button(
-                onClick = { showTargetDialog = true },
-                modifier = Modifier.width(100.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Set Target")
+                Text("H:$humanWins/C:$computerWins", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Target: $targetScore",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Button(
+                    onClick = { showTargetDialog = true },
+                    modifier = Modifier.width(130.dp)
+                ) {
+                    Text("Set Target")
+                }
             }
-        }
 
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
         // Scores display
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Your Score", style = MaterialTheme.typography.titleMedium)
-                Text("$humanScore", style = MaterialTheme.typography.displaySmall)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Your Score", style = MaterialTheme.typography.titleMedium)
+                    Text("$humanScore", style = MaterialTheme.typography.displaySmall)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Computer Score", style = MaterialTheme.typography.titleMedium)
+                    Text("$computerScore", style = MaterialTheme.typography.displaySmall)
+                }
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Computer Score", style = MaterialTheme.typography.titleMedium)
-                Text("$computerScore", style = MaterialTheme.typography.displaySmall)
-            }
-        }
 
-        Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(24.dp))
 
         // Dice display
+        Column {
+            Text("Computer dice:", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            DiceRow(diceValues = computerDice)
+        }
+
+            Spacer(Modifier.height(24.dp))
+
         Column {
             Text("Your dice:", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(8.dp))
             DiceRow(
                 diceValues = humanDice,
                 selected = selectedDice,
-                enabled = rollsLeft < 3 && !gameOver
+                enabled = currentTurn > 1 && !gameOver
             ) { index ->
                 selectedDice = if (selectedDice.contains(index)) {
                     selectedDice - index
@@ -114,85 +129,88 @@ fun GameScreen() {
             }
         }
 
-        Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
 
-        Column {
-            Text("Computer dice:", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
-            DiceRow(diceValues = computerDice)
-        }
-
-        Spacer(Modifier.height(32.dp))
-
-        // Game controls
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(
-                onClick = {
-                    // Human roll logic
-                    humanDice = humanDice.mapIndexed { index, value ->
-                        if (selectedDice.contains(index)) value else (1..6).random()
-                    }
-
-                    // Computer roll logic
-                    computerDice = if (rollsLeft < 3) {
-                        val keep = computerRollStrategy(computerDice, computerScore, targetScore)
-                        computerDice.mapIndexed { index, value ->
-                            if (keep[index]) value else (1..6).random()
+            // Game controls
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(
+                    onClick = {
+                        // Human roll
+                        humanDice = humanDice.mapIndexed { index, value ->
+                            if (selectedDice.contains(index)) value else (1..6).random()
                         }
-                    } else {
-                        List(5) { (1..6).random() }
-                    }
 
-                    rollsLeft--
-                    if (rollsLeft == 0) {
-                        // Auto-score when no rolls left
-                        scoreRound(
-                            humanDice, computerDice,
-                            { humanScore += it },
-                            { computerScore += it },
-                            {
-                                gameOver = true
-                                winner = it
-                                if (it == "human") humanWins++ else computerWins++
-                            },
-                            targetScore
-                        )
-                        rollsLeft = 3
-                        selectedDice = emptyList()
-                    }
-                },
-                enabled = rollsLeft > 0 && !gameOver,
-                modifier = Modifier.width(150.dp)
-            ) {
-                Text("Roll (${rollsLeft} left)")
-            }
+                        // Computer roll
+                        computerDice = if (currentTurn > 1) {
+                            val keep =
+                                computerRollStrategy(computerDice, computerScore, targetScore)
+                            computerDice.mapIndexed { index, value ->
+                                if (keep[index]) value else (1..6).random()
+                            }
+                        } else {
+                            List(5) { (1..6).random() }
+                        }
 
-            Button(
-                onClick = {
-                    scoreRound(
-                        humanDice, computerDice,
-                        { humanScore += it },
-                        { computerScore += it },
-                        {
-                            gameOver = true
-                            winner = it
-                            if (it == "human") humanWins++ else computerWins++
+                        currentTurn++
+                        if (currentTurn > 3) {
+                            scoreRound(
+                                humanDice, computerDice,
+                                humanScore,
+                                computerScore,
+                                { humanScore += it },
+                                { computerScore += it },
+                                {
+                                    gameOver = true
+                                    winner = it
+                                    if (it == "human") humanWins++ else computerWins++
+                                },
+                                targetScore
+                            )
+
+                            currentTurn = 1
+                            selectedDice = emptyList()
+                        }
+                    },
+                    enabled = currentTurn <= 3 && !gameOver,
+                    modifier = Modifier.width(150.dp)
+                ) {
+                    Text("Roll (${4 - currentTurn} left)")
+                }
+
+                // Show Score button only after first roll
+                if (currentTurn > 1) {
+                    Button(
+                        onClick = {
+                            scoreRound(
+                                humanDice, computerDice,
+                                humanScore,
+                                computerScore,
+                                { humanScore += it },
+                                { computerScore += it },
+                                {
+                                    gameOver = true
+                                    winner = it
+                                    if (it == "human") humanWins++ else computerWins++
+                                },
+                                targetScore
+                            )
+
+                            currentTurn = 1
+                            selectedDice = emptyList()
                         },
-                        targetScore
-                    )
-                    rollsLeft = 3
-                    selectedDice = emptyList()
-                },
-                enabled = rollsLeft < 3 && !gameOver,
-                modifier = Modifier.width(150.dp)
-            ) {
-                Text("Score")
+                        enabled = !gameOver,
+                        modifier = Modifier.width(150.dp)
+                    ) {
+                        Text("Score")
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(150.dp))
+                }
             }
         }
-    }
 
     // Target score dialog
     if (showTargetDialog) {
@@ -246,16 +264,12 @@ fun GameScreen() {
             confirmButton = {
                 Button(
                     onClick = {
-                        gameOver = false
-                        humanScore = 0
-                        computerScore = 0
-                        rollsLeft = 3
-                        humanDice = List(5) { 1 }
-                        computerDice = List(5) { 1 }
-                        selectedDice = emptyList()
+                        // Return to MainActivity
+                        val intent = Intent(context, MainActivity::class.java)
+                        context.startActivity(intent)
                     }
                 ) {
-                    Text("New Game")
+                    Text("Return to Menu")
                 }
             }
         )
@@ -293,11 +307,8 @@ fun computerRollStrategy(currentDice: List<Int>, currentScore: Int, targetScore:
     val threshold = targetScore - currentScore
     return currentDice.map { value ->
         when {
-            // If close to target, keep dice that reach the target
             threshold <= 6 -> value >= threshold
-            // If moderately close, keep high dice (5-6)
             threshold <= 15 -> value >= 5
-            // Otherwise keep decent dice (4-6)
             else -> value >= 4
         }
     }
@@ -306,6 +317,8 @@ fun computerRollStrategy(currentDice: List<Int>, currentScore: Int, targetScore:
 fun scoreRound(
     humanDice: List<Int>,
     computerDice: List<Int>,
+    currentHumanScore: Int,
+    currentComputerScore: Int,
     updateHumanScore: (Int) -> Unit,
     updateComputerScore: (Int) -> Unit,
     onGameOver: (String) -> Unit,
@@ -314,17 +327,17 @@ fun scoreRound(
     val humanRoundScore = humanDice.sum()
     val computerRoundScore = computerDice.sum()
 
+    val humanTotal = currentHumanScore + humanRoundScore
+    val computerTotal = currentComputerScore + computerRoundScore
+
     updateHumanScore(humanRoundScore)
     updateComputerScore(computerRoundScore)
-
-    val humanTotal = humanRoundScore
-    val computerTotal = computerRoundScore
 
     if (humanTotal >= targetScore || computerTotal >= targetScore) {
         val winner = when {
             humanTotal > computerTotal -> "human"
             computerTotal > humanTotal -> "computer"
-            else -> { // Tie-breaker
+            else -> {
                 var humanTie = humanDice.sum()
                 var computerTie = computerDice.sum()
                 while (humanTie == computerTie) {
